@@ -1,11 +1,15 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_mistralai import ChatMistralAI
+from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import AIMessage
 import os
 
 def load_llm(logger):
     try:
-        model = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001", temperature=0)
+        model = ChatOllama(model="llama3.1:8b")
+        # model = ChatMistralAI(model="codestral-latest")
+        # model = ChatGoogleGenerativeAI(model="gemini-2.0-flash-001")
         logger.info(f"ChatGoogleGenerativeAI model '{model.model}' initialized successfully.")
         return model
     except Exception as e:
