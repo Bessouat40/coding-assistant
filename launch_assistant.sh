@@ -2,6 +2,7 @@
 API_PORT="8000"
 MCP_PORT="8001"
 STREAMLIT_PORT="8501"
+ENV_FILE="./.env"
 
 # --- Output Files ---
 MCP_LOG="./logs/mcp_server.log"
@@ -26,28 +27,38 @@ cleanup() {
     echo "Cleanup complete."
 }
 
-# --- Set Environment Variables ---
-export MISTRAL_API_KEY=""
-export GOOGLE_API_KEY=""
+# --- Function to load .env file ---
+load_dotenv() {
+  if [ -f "$ENV_FILE" ]; then
+    echo "Loading environment variables from $ENV_FILE"
+    set -a
+    source "$ENV_FILE" || echo "Warning: Encountered issues sourcing '$ENV_FILE'."
+    set +a
+  else
+    echo "Info: Environment file '$ENV_FILE' not found. Using existing environment variables."
+  fi
+}
 
 # --- Trap signals for cleanup ---
 trap cleanup INT TERM EXIT
 
-# --- Launch MCP Server (agent_tools.py) ---
-echo "Starting MCP Server (agent_tools.py)... Output logged to $MCP_LOG"
-python3 api/mcp_server.py > "$MCP_LOG" 2>&1 &
+load_dotenv
+
+# --- Launch MCP Server (mcp_server.py) ---
+echo "Starting MCP Server (mcp_server.py)... Output logged to $MCP_LOG"
+python api/mcp_server.py > "$MCP_LOG" 2>&1 &
 mcp_pid=$! # Store the PID of the last background process
 sleep 2
 
 # --- Launch FastAPI Backend (api.py) ---
 echo "Starting FastAPI API (api.py) on port $API_PORT... Output logged to $API_LOG"
-python3 -m uvicorn api.api:app --host 0.0.0.0 --port "$API_PORT" > "$API_LOG" 2>&1 &
+python -m uvicorn api.api:app --host 0.0.0.0 --port "$API_PORT" > "$API_LOG" 2>&1 &
 api_pid=$!
 sleep 3
 
 # --- Launch Streamlit UI (streamlit_app.py) ---
 echo "Starting Streamlit UI (streamlit_app.py) on port $STREAMLIT_PORT... Output logged to $STREAMLIT_LOG"
-python3 -m streamlit run streamlit_app.py --server.port "$STREAMLIT_PORT" --server.headless true > "$STREAMLIT_LOG" 2>&1 &
+python -m streamlit run streamlit_app.py --server.port "$STREAMLIT_PORT" --server.headless true > "$STREAMLIT_LOG" 2>&1 &
 streamlit_pid=$!
 sleep 3
 
